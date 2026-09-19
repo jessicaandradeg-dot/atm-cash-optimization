@@ -49,8 +49,12 @@ class ATMCashOptimizer:
             prev_inventory = self.initial_balance if t == 0 else I[t - 1]
             prob += I[t] == prev_inventory + (self.capacity * x[t]) - demands[t] + s[t], f"Inventory_Balance_{t}"
 
-        # 5. Resolver o Modelo
-        prob.solve(pulp.PULP_CBC_CMD(msg=False))
+
+        # 5. Resolver o Modelo (com fallback para compatibilidade de arquitetura)
+try:
+    prob.solve(pulp.HiGHS_CMD(msg=False))
+except Exception:
+    prob.solve(pulp.PULP_CBC_CMD(msg=False, path=None))
 
         # 6. Extrair Resultados
         refill_schedule = [bool(pulp.value(x[t])) for t in range(T)]
