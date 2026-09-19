@@ -1,87 +1,119 @@
-import sys
-from pathlib import Path
+"""
+Módulo de Otimização Linear Inteira Mista (MILP) para Gestão de Numerário em ATMs.
+"""
 
-# Adiciona a raiz do projeto ao PYTHONPATH
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-
+from typing import Dict, Any
 import pandas as pd
 import pulp
 
 
 class ATMCashOptimizer:
-    """Modelo de Programação Linear Inteira Mista (MILP) para otimização
-    de abastecimento de caixas eletrônicos (ATMs) utilizando PuLP.
+    """
+    Formulação e resolução de problema de otimização de estoque de numerário
+    em Caixas Eletrônicos via Programação Linear Inteira Mista (MILP).
     """
 
     def __init__(
         self,
-        capacity: float = 200000.0,
-        refill_cost: float = 500.0,
-        stockout_penalty_per_unit: float = 0.05,
-        initial_balance: float = 150000.0
+        holding_cost_rate: float = 0.0005,
+        refill_cost: float = 300.0,
+        stockout_cost_rate: float = 0.05,
+        atm_capacity: float = 200000.0,
+        min_refill_amount: float = 10000.0,
+        initial_balance: float = 50000.0,
+        capacity: float = None,
+        **kwargs,
     ):
-        self.capacity = capacity
+        """
+        Parâmetros do modelo financeiro e operacional.
+        Aceita 'capacity' e kwargs genéricos para compatibilidade total.
+        """
+        self.holding_cost_rate = holding_cost_rate
         self.refill_cost = refill_cost
-        self.stockout_penalty_per_unit = stockout_penalty_per_unit
+        self.stockout_cost_rate = stockout_cost_rate
+        self.atm_capacity = capacity if capacity is not None else atm_capacity
+        self.min_refill_amount = min_refill_amount
         self.initial_balance = initial_balance
 
-    def solve(self, demand_df: pd.DataFrame) -> dict:
-        """Formula e resolve o problema de otimização de abastecimento."""
-        demands = demand_df['demand'].tolist()
-        T = len(demands)
+    def solve(self, demand_df: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Formula e resolve o modelo MILP para a série temporal de demanda fornecida.
+        """
+        time_steps = len(demand_df)
+        days = list(range(time_steps))
 
-        # 1. Instanciar o Problema de Minimização
+        # 1. Instanciar o problema de minimização
         prob = pulp.LpProblem("ATM_Cash_Optimization", pulp.LpMinimize)
 
         # 2. Variáveis de Decisão
-        x = [pulp.LpVariable(f"refill_{t}", cat=pulp.LpBinary) for t in range(T)]
-        I = [pulp.LpVariable(f"inventory_{t}", lowBound=0, upBound=self.capacity, cat=pulp.LpContinuous) for t in range(T)]
-        s = [pulp.LpVariable(f"stockout_{t}", lowBound=0, cat=pulp.LpContinuous) for t in range(T)]
+        inventory = pulp.LpVariable.dicts("Inv", days, lowBound=0, upBound=self.atm_capacity, cat=pulp.LpContinuous)
+        refill_qty = pulp.LpVariable.dicts("RefillQty", days, lowBound=0, upBound=self.atm_capacity, cat=pulp.LpContinuous)
+        refill_event = pulp.LpVariable.dicts("RefillEvent", days, cat=pulp.LpBinary)
+        stockout = pulp.LpVariable.dicts("Stockout", days, lowBound=0, cat=pulp.LpContinuous)
 
-        # 3. Função Objetivo
-        total_refill_cost = pulp.lpSum([x[t] * self.refill_cost for t in range(T)])
-        total_stockout_cost = pulp.lpSum([s[t] * self.stockout_penalty_per_unit for t in range(T)])
-
-        prob += total_refill_cost + total_stockout_cost, "Total_Operational_Cost"
+        # 3. Função Objetivo: Minimizar Custo de Carregamento + Custo Fixo de Transporte + Penalidade de Stockout
+        prob += pulp.lpSum([
+            (inventory[t] * self.holding_cost_rate) +
+            (refill_event[t] * self.refill_cost) +
+            (stockout[t] * self.stockout_cost_rate)
+            for t in days
+        ])
 
         # 4. Restrições do Sistema
-        for t in range(T):
-            prev_inventory = self.initial_balance if t == 0 else I[t - 1]
-            prob += I[t] == prev_inventory + (self.capacity * x[t]) - demands[t] + s[t], f"Inventory_Balance_{t}"
+        for t in days:
+            demand = float(demand_df.iloc[t]["demand"])
 
+            # Balanço de Estoque
+            if t == 0:
+                prob += inventory[t] == self.initial_balance + refill_qty[t] - demand + stockout[t]
+            else:
+                prob += inventory[t] == inventory[t - 1] + refill_qty[t] - demand + stockout[t]
 
-        # 5. Resolver o Modelo (com fallback para compatibilidade de arquitetura)
-try:
-    prob.solve(pulp.HiGHS_CMD(msg=False))
-except Exception:
-    prob.solve(pulp.PULP_CBC_CMD(msg=False, path=None))
+            # Vinculação da Variável Binária de Abastecimento (Big-M)
+            prob += refill_qty[t] <= self.atm_capacity * refill_event[t]
+            prob += refill_qty[t] >= self.min_refill_amount * refill_event[t]
 
-        # 6. Extrair Resultados
-        refill_schedule = [bool(pulp.value(x[t])) for t in range(T)]
-        opt_cost = pulp.value(prob.objective)
+        # 5. Resolver o Modelo (com fallback resiliente para arquitetura ARM64)
+        solver_executed = False
+
+        if not solver_executed:
+            try:
+                solver = pulp.HiGHS_CMD(msg=False)
+                if solver.available():
+                    prob.solve(solver)
+                    solver_executed = True
+            except Exception:
+                pass
+
+        if not solver_executed:
+            try:
+                solver = pulp.PULP_CBC_CMD(msg=False)
+                if solver.available():
+                    prob.solve(solver)
+                    solver_executed = True
+            except Exception:
+                pass
+
+        if not solver_executed:
+            prob.solve(pulp.PULP_CBC_CMD(msg=False, path=None))
+
+        # 6. Extração dos Resultados
+        schedule = []
+        for t in days:
+            schedule.append({
+                "day": t,
+                "demand": demand_df.iloc[t]["demand"],
+                "inventory": pulp.value(inventory[t]),
+                "refill_qty": pulp.value(refill_qty[t]),
+                "refill_event": int(pulp.value(refill_event[t])),
+                "stockout": pulp.value(stockout[t]),
+            })
+
+        schedule_df = pd.DataFrame(schedule)
+        total_cost = pulp.value(prob.objective)
 
         return {
-            'status': pulp.LpStatus[prob.status],
-            'refill_schedule': refill_schedule,
-            'optimal_cost': opt_cost
+            "status": pulp.LpStatus[prob.status],
+            "total_cost": total_cost,
+            "schedule": schedule_df,
         }
-
-
-if __name__ == '__main__':
-    from src.simulation.environment import ATMEvironment
-    from src.simulation.generator import ATMDemandSimulator
-
-    gen = ATMDemandSimulator(base_demand=50000.0, seed=42)
-    df_demand = gen.generate_series(start_date='2026-01-01', days=30)
-
-    optimizer = ATMCashOptimizer(capacity=200000.0, refill_cost=500.0)
-    opt_results = optimizer.solve(df_demand)
-
-    print(f"Status do Solver: {opt_results['status']}")
-
-    env = ATMEvironment(capacity=200000.0, refill_cost=500.0)
-    sim_results = env.simulate_policy(df_demand, opt_results['refill_schedule'])
-
-    print("\n--- Métricas da Solução Otimizada (MILP) ---")
-    for key, val in sim_results['metrics'].items():
-        print(f"{key}: {val}")
