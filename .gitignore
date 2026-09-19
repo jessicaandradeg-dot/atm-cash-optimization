@@ -1,0 +1,21 @@
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Dados locais
+data/raw/*
+data/processed/*
+
+# IDEs
+.vscode/
+.idea/
+
+# Jupyter Notebook Cache
+.ipynb_checkpoints/
