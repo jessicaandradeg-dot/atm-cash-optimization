@@ -1,77 +1,160 @@
-# ğŸ§ ATM Cash Optimization Simulator & MILP Model
+# ?? ATM Cash Optimization Simulator & MILP Model
 
-Este repositÃ³rio apresenta uma soluÃ§Ã£o completa de **Pesquisa Operacional (PO) e Modelagem Quantitativa** para a otimizaÃ§Ã£o do planejamento de reabastecimento, decisÃ£o sequencial e composiÃ§Ã£o dinÃ¢mica de cÃ©dulas em Caixas EletrÃ´nicos (ATMs) sob demanda estocÃ¡stica.
+Projeto de Pesquisa Operacional e otimização aplicada para reduzir custos logísticos e melhorar a disponibilidade de numerário em redes de ATMs.
 
----
+## Problema de negócio
 
-## ğŸ“Œ Contexto e Problema de NegÃ³cio
+Uma rede de caixas eletrônicos precisa equilibrar três forças ao mesmo tempo:
 
-O gerenciamento de numerÃ¡rio em redes de ATMs envolve um trade-off analÃ­tico entre trÃªs pilares:
-1. **Custo LogÃ­stico (Transporte de Valores):** Cada visita de carro-forte possui um custo fixo elevado para sangria/abastecimento.
-2. **Custo de Oportunidade do Capital:** Dinheiro ocioso mantido nos cassetes sem render juros.
-3. **EficiÃªncia no Mix de CÃ©dulas & Penalidade por Stockout:** Falta de numerÃ¡rio ou exaustÃ£o prematura de denominaÃ§Ãµes especÃ­ficas (R$ 20, R$ 50, R$ 100) gera falhas no saque e insatisfaÃ§Ã£o do cliente.
+- reduzir visitas de carro-forte e custos logísticos
+- evitar capital ocioso em cassetes
+- garantir atendimento ao cliente sem falhas por falta de cédulas
 
-O objetivo do projeto Ã© determinar a polÃ­tica Ã³tima de reabastecimento e alocaÃ§Ã£o por cassete que minimiza o custo total de operaÃ§Ã£o, garantindo alto nÃ­vel de serviÃ§o.
+Quando o mix de notas está mal dimensionado, o banco sofre com: falta de saque em denominações específicas, abastecimentos frequentes, custo elevado de operação e pior experiência do cliente.
 
----
+Este projeto modela o problema como uma decisão sequencial sob incerteza, com foco em melhorar a política de reposição e alocação de cédulas por cassete.
 
-## ğŸ› ï¸ Metodologia e Tecnologias
+## O que foi construído
 
-* **Linguagem & Ambiente:** Python 3.x, `pandas`, `numpy`, `scipy`
-* **Modelagem de OtimizaÃ§Ã£o (MILP):** `PuLP` utilizando suporte a mÃºltiplos solvers: **COIN-OR Branch and Cut (CBC)** e **HiGHS_CMD**.
-* **DecisÃ£o Sequencial sob Incerteza & Reamostragem:**
-  * Reamostragem nÃ£o-paramÃ©trica (**Bootstrap**) a partir do histÃ³rico de saques.
-  * FormulaÃ§Ã£o com **Horizonte Movel (Rolling Horizon)** e regra de *fallback* heurÃ­stico em caso de extrapolaÃ§Ã£o do tempo limite do solver.
-* **Auditabilidade e Explicabilidade:**
-  * MÃ³dulo de logging estruturado (`src/audit_logger.py`) gerando rastreabilidade completa em `.json` (estado inicial, demanda solicitada, tempo de execuÃ§Ã£o e aÃ§Ã£o tomada por saque).
+- simulação de demanda de saques por ATM
+- reamostragem de histórico com bootstrap
+- otimização de reposição por horizonte móvel
+- modelo MILP para decisão de mix de cédulas
+- comparação com políticas heurísticas operacionais
+- logging de decisões para explicabilidade e rastreabilidade
 
----
+## Metodologia
 
-## ğŸ“ FormulaÃ§Ã£o do Modelo Quantitativo (MILP com DecisÃ£o de Mix)
+A solução combina:
 
-O modelo MILP (ProgramaÃ§Ã£o Linear Inteira Mista) minimiza a funÃ§Ã£o de custo total do ciclo operacional e decide explicitamente a composiÃ§Ã£o de notas liberadas em cada operaÃ§Ã£o:
+1. criação de cenário de demanda por caixa eletrônico
+2. amostragem do histórico para capturar variabilidade
+3. modelagem de estoque por denominação e período
+4. otimização com programação inteira mista
+5. avaliação contra baselines tradicionais
 
-$$\min \sum_{t=1}^{T} \left( C_{\text{log}} \cdot Y_t + C_{\text{cap}} \sum_{d \in \{20,50,100\}} d \cdot I_{d,t} + \sum_{d \in \{20,50,100\}} \pi_d \cdot S_{d,t} \right)$$
+A estrutura do problema considera:
 
-### Definindo VariÃ¡veis de DecisÃ£o:
-* $Y_t \in \{0, 1\}$: VariÃ¡vel binÃ¡ria de decisÃ£o ($1$ se hÃ¡ visita/reabastecimento no tempo $t$, $0$ caso contrÃ¡rio).
-* $x_{d, t} \in \mathbb{Z}^+$: **Quantidade de cÃ©dulas da denominaÃ§Ã£o $d$ dispensadas no saque do dia $t$**.
-* $I_{d, t} \ge 0$: Saldo mantido no cassete da denominaÃ§Ã£o $d$ no final do perÃ­odo $t$.
-* $S_{d, t} \ge 0$: Ruptura (demanda nÃ£o atendida em BRL) da denominaÃ§Ã£o $d$ no dia $t$.
+- variáveis de decisão sobre reposição por período
+- estoque por denominação (R$ 20, R$ 50, R$ 100)
+- capacidade de cada cassete
+- penalidade por ruptura de atendimento
+- custo de transporte e oportunidade do capital
 
-### RestriÃ§Ãµes MatemÃ¡ticas:
-1. **Atendimento da Demanda por DenominaÃ§Ã£o:**
-   $$\sum_{d \in \{20, 50, 100\}} d \cdot x_{d, t} = D_t - \sum_{d} S_{d, t} \quad \forall t$$
-2. **BalanÃ§o de Estoque em Cassetes:**
-   $$I_{d, t} = I_{d, t-1} - x_{d, t} + K_d \cdot Y_t \quad \forall d \in \{20, 50, 100\}, \forall t$$
-3. **Capacidade MÃ¡xima do Cassete:**
-   $$I_{d, t} \le K_d \quad \forall d, \forall t \quad (K_{100}=2000, K_{50}=2000, K_{20}=2000)$$
+## Resultados e KPI
 
----
+### Métricas principais
 
-## ğŸ“Š Resultados Principais e MÃ©tricas por DenominaÃ§Ã£o
+- número de abastecimentos
+- tempo médio entre abastecimentos
+- nível de serviço por denominação
+- custo total relativo
+- taxa de atendimento de demanda
 
-| EstratÃ©gia | Abastecimentos | TMEA (Dias) | NÃ­vel de ServiÃ§o ($R\$ 100$) | NÃ­vel de ServiÃ§o ($R\$ 50$) | NÃ­vel de ServiÃ§o ($R\$ 20$) | Custo Total Relativo |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Modelo MILP (CBC / HiGHS)** | **3** | **10.0 dias** | **99.8%** | **99.2%** | **99.1%** | **100.0% (Base)** |
-| HeurÃ­stica Maior DenominaÃ§Ã£o | 5 | 6.0 dias | 98.1% | 91.5% | 85.0% | +38.5% |
-| HeurÃ­stica Proporcional | 6 | 5.0 dias | 90.2% | 88.4% | 88.7% | +52.1% |
-| HeurÃ­stica Limiar Fixo (25%) | 4 | 7.5 dias | 95.0% | 92.1% | 90.3% | +24.8% |
+### Resultado ilustrativo
 
----
+| Estratégia | Abastecimentos | TMEA (dias) | Serviço R$ 100 | Serviço R$ 50 | Serviço R$ 20 | Custo relativo |
+|---|---:|---:|---:|---:|---:|---:|
+| Modelo MILP | 3 | 10.0 | 99.8% | 99.2% | 99.1% | 100.0% |
+| Maior denominação | 5 | 6.0 | 98.1% | 91.5% | 85.0% | +38.5% |
+| Proporcional | 6 | 5.0 | 90.2% | 88.4% | 88.7% | +52.1% |
+| Limiar fixo | 4 | 7.5 | 95.0% | 92.1% | 90.3% | +24.8% |
 
-## ğŸ“‚ Estrutura do RepositÃ³rio
+## Benchmark comparativo
+
+O projeto demonstra que a otimização matemática supera regras práticas em:
+
+- redução de abastecimentos
+- melhor manutenção de nível de serviço
+- maior estabilidade operacional
+- menor custo total
+
+Esse benchmark é importante para mostrar maturidade em pesquisa operacional e capacidade de escolher uma política baseada em desempenho real.
+
+## Stack
+
+- Python
+- PuLP
+- NumPy
+- Pandas
+- SciPy
+- CBC / HiGHS
+- Simulação estocástica
+- JSON logging e auditabilidade
+
+## Diagrama de fluxo
+
+```text
+Histórico de saques
+        ?
+Reamostragem / simulação
+        ?
+Definição de demanda por período
+        ?
+Modelo MILP + restrições de estoque
+        ?
+Política de reposição
+        ?
+Avaliação por KPI operacional
+```
+
+## Estrutura do repositório
 
 ```text
 atm-cash-optimization/
-â”œâ”€â”€ data/                    # Processamento e geradores sintÃ©ticos de dados
-â”œâ”€â”€ notebooks/               # AnÃ¡lises exploratÃ³rias e prototipagem
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ simulation/          # Gerador de demanda e amostragem Bootstrap
-â”‚   â”œâ”€â”€ optimization/        # Modelo MILP em PuLP (Solvers CBC e HiGHS)
-â”‚   â”œâ”€â”€ baselines.py         # HeurÃ­sticas operacionais (Maior DenominaÃ§Ã£o, Proporcional, Limiar)
-â”‚   â””â”€â”€ audit_logger.py      # Logger de explicabilidade e rastreabilidade em JSON
-â”œâ”€â”€ tests/                   # Testes unitÃ¡rios com pytest
-â”œâ”€â”€ .gitignore
-â”œâ”€â”€ README.md
-â””â”€â”€ requirements.txt
++-- data/
++-- notebooks/
++-- src/
+¦   +-- simulation/
+¦   +-- optimization/
+¦   +-- baselines.py
+¦   +-- audit_logger.py
++-- tests/
++-- README.md
++-- requirements.txt
++-- .gitignore
+```
+
+## Relevância para vagas
+
+Este projeto se conecta diretamente com vagas de:
+
+- Pesquisa Operacional
+- OTIMIZAÇÃO
+- Decision Science
+- Supply Chain Analytics
+- Analytics aplicada a operações financeiras
+- Data Science orientado a impacto operacional
+
+## Próximos passos recomendados
+
+- incluir benchmark em gráficos e imagens
+- comparar políticas online vs offline
+- avaliar aprendizado por reforço como alternativa
+- adicionar visualização de estoque por denominação e tempo
+- publicar um resumo executivo com KPI e metodologia
+
+## Link para artigo / benchmark / tabela
+
+- [Benchmark de políticas](#)
+- [Resumo executivo](#)
+- [Notebook de simulação](#)
+- [Relatório de resultados](#)
+
+## Mensagem para recrutadores
+
+Este projeto combina otimização matemática, simulação estocástica e análise operacional para resolver um problema real de logística financeira. Em vez de focar apenas em modelo estatístico, a solução foi pensada para reduzir custos e melhorar a qualidade de serviço em operação.
+
+Ele mostra capacidade de formular problema de negócio, transformar em modelo quantitativo, escolher política com base em performance e explicar decisões de forma auditável.
+
+---
+
+## Documentação técnica adicional
+
+A formulação MILP minimiza custo total com restrições de demanda, balanço de estoque e capacidade dos cassetes, incluindo variáveis binárias para o momento do abastecimento e variáveis de quantidade por denominação.
+
+$$
+\min \sum_{t=1}^{T} \left( C_{\text{log}} \cdot Y_t + C_{\text{cap}} \sum_{d \in \{20,50,100\}} d \cdot I_{d,t} + \sum_{d \in \{20,50,100\}} \pi_d \cdot S_{d,t} \right)
+$$
+
+Esta abordagem reforça o alinhamento do projeto com cenários reais de otimização em ambientes financeiros e logísticos.
