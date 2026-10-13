@@ -1,75 +1,75 @@
 # ?? ATM Cash Optimization Simulator & MILP Model
 
-Projeto de Pesquisa Operacional e otimização aplicada para reduzir custos logísticos e melhorar a disponibilidade de numerário em redes de ATMs.
+Projeto de Pesquisa Operacional e otimizaÃ§Ã£o aplicada para reduzir custos logÃ­sticos e melhorar a disponibilidade de numerÃ¡rio em redes de ATMs.
 
-## Problema de negócio
+## Problema de negÃ³cio
 
-Uma rede de caixas eletrônicos precisa equilibrar três forças ao mesmo tempo:
+Uma rede de caixas eletrÃ´nicos precisa equilibrar trÃªs forÃ§as ao mesmo tempo:
 
-- reduzir visitas de carro-forte e custos logísticos
+- reduzir visitas de carro-forte e custos logÃ­sticos
 - evitar capital ocioso em cassetes
-- garantir atendimento ao cliente sem falhas por falta de cédulas
+- garantir atendimento ao cliente sem falhas por falta de cÃ©dulas
 
-Quando o mix de notas está mal dimensionado, o banco sofre com: falta de saque em denominações específicas, abastecimentos frequentes, custo elevado de operação e pior experiência do cliente.
+Quando o mix de notas estÃ¡ mal dimensionado, o banco sofre com: falta de saque em denominaÃ§Ãµes especÃ­ficas, abastecimentos frequentes, custo elevado de operaÃ§Ã£o e pior experiÃªncia do cliente.
 
-Este projeto modela o problema como uma decisão sequencial sob incerteza, com foco em melhorar a política de reposição e alocação de cédulas por cassete.
+Este projeto modela o problema como uma decisÃ£o sequencial sob incerteza, com foco em melhorar a polÃ­tica de reposiÃ§Ã£o e alocaÃ§Ã£o de cÃ©dulas por cassete.
 
-## O que foi construído
+## O que foi construÃ­do
 
-- simulação de demanda de saques por ATM
-- reamostragem de histórico com bootstrap
-- otimização de reposição por horizonte móvel
-- modelo MILP para decisão de mix de cédulas
-- comparação com políticas heurísticas operacionais
-- logging de decisões para explicabilidade e rastreabilidade
+- simulaÃ§Ã£o de demanda de saques por ATM
+- reamostragem de histÃ³rico com bootstrap
+- otimizaÃ§Ã£o de reposiÃ§Ã£o por horizonte mÃ³vel
+- modelo MILP para decisÃ£o de mix de cÃ©dulas
+- comparaÃ§Ã£o com polÃ­ticas heurÃ­sticas operacionais
+- logging de decisÃµes para explicabilidade e rastreabilidade
 
 ## Metodologia
 
-A solução combina:
+A soluÃ§Ã£o combina:
 
-1. criação de cenário de demanda por caixa eletrônico
-2. amostragem do histórico para capturar variabilidade
-3. modelagem de estoque por denominação e período
-4. otimização com programação inteira mista
-5. avaliação contra baselines tradicionais
+1. criaÃ§Ã£o de cenÃ¡rio de demanda por caixa eletrÃ´nico
+2. amostragem do histÃ³rico para capturar variabilidade
+3. modelagem de estoque por denominaÃ§Ã£o e perÃ­odo
+4. otimizaÃ§Ã£o com programaÃ§Ã£o inteira mista
+5. avaliaÃ§Ã£o contra baselines tradicionais
 
 A estrutura do problema considera:
 
-- variáveis de decisão sobre reposição por período
-- estoque por denominação (R$ 20, R$ 50, R$ 100)
+- variÃ¡veis de decisÃ£o sobre reposiÃ§Ã£o por perÃ­odo
+- estoque por denominaÃ§Ã£o (R$ 20, R$ 50, R$ 100)
 - capacidade de cada cassete
 - penalidade por ruptura de atendimento
 - custo de transporte e oportunidade do capital
 
 ## Resultados e KPI
 
-### Métricas principais
+### MÃ©tricas principais
 
-- número de abastecimentos
-- tempo médio entre abastecimentos
-- nível de serviço por denominação
+- nÃºmero de abastecimentos
+- tempo mÃ©dio entre abastecimentos
+- nÃ­vel de serviÃ§o por denominaÃ§Ã£o
 - custo total relativo
 - taxa de atendimento de demanda
 
 ### Resultado ilustrativo
 
-| Estratégia | Abastecimentos | TMEA (dias) | Serviço R$ 100 | Serviço R$ 50 | Serviço R$ 20 | Custo relativo |
+| EstratÃ©gia | Abastecimentos | TMEA (dias) | ServiÃ§o R$ 100 | ServiÃ§o R$ 50 | ServiÃ§o R$ 20 | Custo relativo |
 |---|---:|---:|---:|---:|---:|---:|
 | Modelo MILP | 3 | 10.0 | 99.8% | 99.2% | 99.1% | 100.0% |
-| Maior denominação | 5 | 6.0 | 98.1% | 91.5% | 85.0% | +38.5% |
+| Maior denominaÃ§Ã£o | 5 | 6.0 | 98.1% | 91.5% | 85.0% | +38.5% |
 | Proporcional | 6 | 5.0 | 90.2% | 88.4% | 88.7% | +52.1% |
 | Limiar fixo | 4 | 7.5 | 95.0% | 92.1% | 90.3% | +24.8% |
 
 ## Benchmark comparativo
 
-O projeto demonstra que a otimização matemática supera regras práticas em:
+O projeto demonstra que a otimizaÃ§Ã£o matemÃ¡tica supera regras prÃ¡ticas em:
 
-- redução de abastecimentos
-- melhor manutenção de nível de serviço
+- reduÃ§Ã£o de abastecimentos
+- melhor manutenÃ§Ã£o de nÃ­vel de serviÃ§o
 - maior estabilidade operacional
 - menor custo total
 
-Esse benchmark é importante para mostrar maturidade em pesquisa operacional e capacidade de escolher uma política baseada em desempenho real.
+Esse benchmark Ã© importante para mostrar maturidade em pesquisa operacional e capacidade de escolher uma polÃ­tica baseada em desempenho real.
 
 ## Stack
 
@@ -79,82 +79,59 @@ Esse benchmark é importante para mostrar maturidade em pesquisa operacional e ca
 - Pandas
 - SciPy
 - CBC / HiGHS
-- Simulação estocástica
+- SimulaÃ§Ã£o estocÃ¡stica
 - JSON logging e auditabilidade
 
 ## Diagrama de fluxo
 
 ```text
-Histórico de saques
+HistÃ³rico de saques
         ?
-Reamostragem / simulação
+Reamostragem / simulaÃ§Ã£o
         ?
-Definição de demanda por período
+DefiniÃ§Ã£o de demanda por perÃ­odo
         ?
-Modelo MILP + restrições de estoque
+Modelo MILP + restriÃ§Ãµes de estoque
         ?
-Política de reposição
+PolÃ­tica de reposiÃ§Ã£o
         ?
-Avaliação por KPI operacional
+AvaliaÃ§Ã£o por KPI operacional
 ```
 
-## Estrutura do repositório
+## Estrutura do repositÃ³rio
 
 ```text
 atm-cash-optimization/
 +-- data/
 +-- notebooks/
 +-- src/
-¦   +-- simulation/
-¦   +-- optimization/
-¦   +-- baselines.py
-¦   +-- audit_logger.py
+Â¦   +-- simulation/
+Â¦   +-- optimization/
+Â¦   +-- baselines.py
+Â¦   +-- audit_logger.py
 +-- tests/
 +-- README.md
 +-- requirements.txt
 +-- .gitignore
 ```
 
-## Relevância para vagas
 
-Este projeto se conecta diretamente com vagas de:
-
-- Pesquisa Operacional
-- OTIMIZAÇÃO
-- Decision Science
-- Supply Chain Analytics
-- Analytics aplicada a operações financeiras
-- Data Science orientado a impacto operacional
-
-## Próximos passos recomendados
-
-- incluir benchmark em gráficos e imagens
-- comparar políticas online vs offline
-- avaliar aprendizado por reforço como alternativa
-- adicionar visualização de estoque por denominação e tempo
-- publicar um resumo executivo com KPI e metodologia
 
 ## Link para artigo / benchmark / tabela
 
-- [Benchmark de políticas](#)
+- [Benchmark de polÃ­ticas](#)
 - [Resumo executivo](#)
-- [Notebook de simulação](#)
-- [Relatório de resultados](#)
-
-## Mensagem para recrutadores
-
-Este projeto combina otimização matemática, simulação estocástica e análise operacional para resolver um problema real de logística financeira. Em vez de focar apenas em modelo estatístico, a solução foi pensada para reduzir custos e melhorar a qualidade de serviço em operação.
-
-Ele mostra capacidade de formular problema de negócio, transformar em modelo quantitativo, escolher política com base em performance e explicar decisões de forma auditável.
+- [Notebook de simulaÃ§Ã£o](#)
+- [RelatÃ³rio de resultados](#)
 
 ---
 
-## Documentação técnica adicional
+## DocumentaÃ§Ã£o tÃ©cnica adicional
 
-A formulação MILP minimiza custo total com restrições de demanda, balanço de estoque e capacidade dos cassetes, incluindo variáveis binárias para o momento do abastecimento e variáveis de quantidade por denominação.
+A formulaÃ§Ã£o MILP minimiza custo total com restriÃ§Ãµes de demanda, balanÃ§o de estoque e capacidade dos cassetes, incluindo variÃ¡veis binÃ¡rias para o momento do abastecimento e variÃ¡veis de quantidade por denominaÃ§Ã£o.
 
 $$
 \min \sum_{t=1}^{T} \left( C_{\text{log}} \cdot Y_t + C_{\text{cap}} \sum_{d \in \{20,50,100\}} d \cdot I_{d,t} + \sum_{d \in \{20,50,100\}} \pi_d \cdot S_{d,t} \right)
 $$
 
-Esta abordagem reforça o alinhamento do projeto com cenários reais de otimização em ambientes financeiros e logísticos.
+Esta abordagem reforÃ§a o alinhamento do projeto com cenÃ¡rios reais de otimizaÃ§Ã£o em ambientes financeiros e logÃ­sticos.
