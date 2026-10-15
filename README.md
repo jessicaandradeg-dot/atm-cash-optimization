@@ -126,12 +126,4 @@ atm-cash-optimization/
 
 ---
 
-## Documentação técnica adicional
-
-A formulação MILP minimiza custo total com restrições de demanda, balanço de estoque e capacidade dos cassetes, incluindo variáveis binárias para o momento do abastecimento e variáveis de quantidade por denominação.
-
-$$
-\min \sum_{t=1}^{T} \left( C_{\text{log}} \cdot Y_t + C_{\text{cap}} \sum_{d \in \{20,50,100\}} d \cdot I_{d,t} + \sum_{d \in \{20,50,100\}} \pi_d \cdot S_{d,t} \right)
-$$
-
-Esta abordagem reforça o alinhamento do projeto com cenários reais de otimização em ambientes financeiros e logísticos.
+amento do projeto com cenários reais de otimização em ambientes financeiros e logísticos.
